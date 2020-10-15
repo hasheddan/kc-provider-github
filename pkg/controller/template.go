@@ -21,8 +21,8 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
-	"github.com/crossplane/provider-template/pkg/controller/config"
-	"github.com/crossplane/provider-template/pkg/controller/mytype"
+	"github.com/hasheddan/kc-provider-github/pkg/controller/config"
+	"github.com/hasheddan/kc-provider-github/pkg/controller/mytype"
 )
 
 // Setup creates all Template controllers with the supplied logger and adds them to

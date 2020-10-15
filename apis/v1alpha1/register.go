@@ -25,7 +25,7 @@ import (
 
 // Package type metadata.
 const (
-	Group   = "template.crossplane.io"
+	Group   = "github.hasheddan.io"
 	Version = "v1alpha1"
 )
 

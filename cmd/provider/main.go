@@ -26,8 +26,8 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
-	"github.com/crossplane/provider-template/apis"
-	"github.com/crossplane/provider-template/pkg/controller"
+	"github.com/hasheddan/kc-provider-github/apis"
+	"github.com/hasheddan/kc-provider-github/pkg/controller"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module github.com/crossplane/provider-template
+module github.com/hasheddan/kc-provider-github
 
 go 1.13
 
