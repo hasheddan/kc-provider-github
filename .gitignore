@@ -3,3 +3,4 @@
 /.vendor-new
 .vscode
 
+/secrets
