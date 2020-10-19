@@ -1,9 +1,7 @@
-apiVersion: sample.template.crossplane.io/v1alpha1
+apiVersion: sample.github.hasheddan.io/v1alpha1
 kind: MyType
 metadata:
   name: example
 spec:
   forProvider:
-    configurableField: test
-  providerConfigRef:
-    name: example
+    configurableField: kc-provider-github
