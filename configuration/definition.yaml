@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v1alpha1
+kind: CompositeResourceDefinition
+metadata:
+  name: compositeuserteams.hasheddan.io
+spec:
+  claimNames:
+    kind: UserTeam
+    plural: userteams
+  crdSpecTemplate:
+    group: hasheddan.io
+    version: v1alpha1
+    names:
+      kind: CompositeUserTeam
+      plural: compositeuserteams
+    validation:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              org:
+                type: string
+                description: Name of the organization.
+              user:
+                type: string
+                description: Name of the user.
+            required:
+            - organization
+            - user

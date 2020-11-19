@@ -1,0 +1,9 @@
+apiVersion: meta.pkg.crossplane.io/v1alpha1
+kind: Configuration
+metadata:
+  name: source-control-paas
+spec:
+  crossplane: v0.13.0
+  dependsOn:
+  - provider: hasheddan/kc-provider-github
+    version: ">=v0.2.0"

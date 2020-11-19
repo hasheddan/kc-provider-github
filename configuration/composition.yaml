@@ -1,0 +1,42 @@
+
+apiVersion: apiextensions.crossplane.io/v1alpha1
+kind: Composition
+metadata:
+  name: compositeuserteams.github.hasheddan.io
+  labels:
+    provider: github
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: hasheddan.io/v1alpha1
+    kind: CompositeUserTeam
+  resources:
+    - base:
+        apiVersion: org.github.hasheddan.io/v1alpha1
+        kind: Team
+        spec:
+          forProvider:
+            org: kubecon-na
+            description: "A composed team."
+            privacy: secret
+      patches:
+      - fromFieldPath: "metadata.annotations[crossplane.io/external-name]"
+        toFieldPath: "metadata.annotations[crossplane.io/external-name]"
+      - fromFieldPath: "spec.org"
+        toFieldPath: "spec.forProvider.org"
+    - base:
+        apiVersion: org.github.hasheddan.io/v1alpha1
+        kind: Membership
+        spec:
+          forProvider:
+            org: kubecon-na
+            teamSelector:
+              matchControllerRef: true
+            user: hasheddan
+      patches:
+      - fromFieldPath: "metadata.annotations[crossplane.io/external-name]"
+        toFieldPath: "spec.forProvider.team"
+      - fromFieldPath: "spec.org"
+        toFieldPath: "spec.forProvider.org"
+      - fromFieldPath: "spec.user"
+        toFieldPath: "spec.forProvider.user"
