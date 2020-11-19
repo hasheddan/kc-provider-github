@@ -6,33 +6,27 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.4
   creationTimestamp: null
-  name: mytypes.sample.github.hasheddan.io
+  name: memberships.org.github.hasheddan.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.bindingPhase
-    name: STATUS
-    type: string
-  - JSONPath: .status.atProvider.state
-    name: STATE
-    type: string
-  - JSONPath: .spec.classRef.name
-    name: CLASS
+  - JSONPath: .status.conditions[?(@.type=='Synced')].status
+    name: SYNCED
     type: string
   - JSONPath: .metadata.creationTimestamp
     name: AGE
     type: date
-  group: sample.github.hasheddan.io
+  group: org.github.hasheddan.io
   names:
-    kind: MyType
-    listKind: MyTypeList
-    plural: mytypes
-    singular: mytype
+    kind: Membership
+    listKind: MembershipList
+    plural: memberships
+    singular: membership
   scope: Cluster
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: A MyType is an example API type
+      description: A Membership is an example API type
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -43,7 +37,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: A MyTypeSpec defines the desired state of a MyType.
+          description: A MembershipSpec defines the desired state of a Membership.
           properties:
             deletionPolicy:
               description: DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. The "Delete" policy is the default when no policy is specified.
@@ -52,12 +46,38 @@ spec:
               - Delete
               type: string
             forProvider:
-              description: MyTypeParameters are the configurable fields of a MyType.
+              description: MembershipParameters are the configurable fields of a Membership.
               properties:
-                configurableField:
+                org:
+                  type: string
+                team:
+                  type: string
+                teamRef:
+                  description: A Reference to a named object.
+                  properties:
+                    name:
+                      description: Name of the referenced object.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                teamSelector:
+                  description: A Selector selects an object.
+                  properties:
+                    matchControllerRef:
+                      description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+                      type: boolean
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      description: MatchLabels ensures an object with matching labels is selected.
+                      type: object
+                  type: object
+                user:
                   type: string
               required:
-              - configurableField
+              - org
+              - user
               type: object
             providerConfigRef:
               description: ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -94,12 +114,12 @@ spec:
           - forProvider
           type: object
         status:
-          description: A MyTypeStatus represents the observed state of a MyType.
+          description: A MembershipStatus represents the observed state of a Membership.
           properties:
             atProvider:
-              description: MyTypeObservation are the observable fields of a MyType.
+              description: MembershipObservation are the observable fields of a Membership.
               properties:
-                observableField:
+                state:
                   type: string
               type: object
             conditions:
