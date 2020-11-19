@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mytype
+package org
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-github/v32/github"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,11 +29,13 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	"github.com/hasheddan/kc-provider-github/apis/sample/v1alpha1"
+	"github.com/hasheddan/kc-provider-github/apis/org/v1alpha1"
 	apisv1alpha1 "github.com/hasheddan/kc-provider-github/apis/v1alpha1"
+	kcgitclient "github.com/hasheddan/kc-provider-github/pkg/client"
 )
 
 const (
@@ -45,38 +48,29 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
-// A NoOpService does nothing.
-type NoOpService struct{}
-
-var (
-	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
-)
-
 // Setup adds a controller that reconciles MyType managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger) error {
-	name := managed.ControllerName(v1alpha1.MyTypeGroupKind)
+	name := managed.ControllerName(v1alpha1.TeamGroupKind)
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.MyTypeGroupVersionKind),
+		resource.ManagedKind(v1alpha1.TeamGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
-			kube:         mgr.GetClient(),
-			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: newNoOpService}),
+			kube:  mgr.GetClient(),
+			usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{})}),
 		managed.WithLogger(l.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&v1alpha1.MyType{}).
+		For(&v1alpha1.Team{}).
 		Complete(r)
 }
 
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube         client.Client
-	usage        resource.Tracker
-	newServiceFn func(creds []byte) (interface{}, error)
+	kube  client.Client
+	usage resource.Tracker
 }
 
 // Connect typically produces an ExternalClient by:
@@ -85,7 +79,7 @@ type connector struct {
 // 3. Getting the ProviderConfig's credentials secret.
 // 4. Using the credentials secret to form a client.
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	cr, ok := mg.(*v1alpha1.Team)
 	if !ok {
 		return nil, errors.New(errNotMyType)
 	}
@@ -112,7 +106,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.Wrap(err, errGetSecret)
 	}
 
-	svc, err := c.newServiceFn(s.Data[ref.Key])
+	svc, err := kcgitclient.NewClient(string(s.Data[ref.Key]))
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
@@ -125,18 +119,39 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 type external struct {
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
-	service interface{}
+	service *github.Client
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	cr, ok := mg.(*v1alpha1.Team)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotMyType)
 	}
 
-	// These fmt statements should be removed in the real implementation.
-	fmt.Printf("Observing: %+v", cr)
+	team, _, err := c.service.Teams.GetTeamBySlug(ctx, cr.Spec.ForProvider.Org, meta.GetExternalName(cr))
+	if err != nil {
+		return managed.ExternalObservation{
+			ResourceExists: false,
+		}, nil
+	}
 
+	if team.NodeID != nil {
+		cr.Status.AtProvider.NodeID = *team.NodeID
+	}
+
+	upToDate := true
+	if team != nil {
+		if cr.Spec.ForProvider.Description != nil {
+			if team.Description == nil || *team.Description != *cr.Spec.ForProvider.Description {
+				upToDate = false
+			}
+		}
+		if cr.Spec.ForProvider.Privacy != nil {
+			if team.Privacy == nil || *team.Privacy != *cr.Spec.ForProvider.Privacy {
+				upToDate = false
+			}
+		}
+	}
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
@@ -146,51 +161,53 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the external resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: true,
-
-		// Return any details that may be required to connect to the external
-		// resource. These will be stored as the connection secret.
-		ConnectionDetails: managed.ConnectionDetails{},
+		ResourceUpToDate: upToDate,
 	}, nil
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	cr, ok := mg.(*v1alpha1.Team)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotMyType)
 	}
 
 	fmt.Printf("Creating: %+v", cr)
 
-	return managed.ExternalCreation{
-		// Optionally return any details that may be required to connect to the
-		// external resource. These will be stored as the connection secret.
-		ConnectionDetails: managed.ConnectionDetails{},
-	}, nil
+	_, _, err := c.service.Teams.CreateTeam(ctx, cr.Spec.ForProvider.Org, github.NewTeam{
+		Name:        meta.GetExternalName(cr),
+		Description: cr.Spec.ForProvider.Description,
+		Privacy:     cr.Spec.ForProvider.Privacy,
+	})
+
+	return managed.ExternalCreation{}, err
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.MyType)
+	cr, ok := mg.(*v1alpha1.Team)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotMyType)
 	}
 
 	fmt.Printf("Updating: %+v", cr)
 
-	return managed.ExternalUpdate{
-		// Optionally return any details that may be required to connect to the
-		// external resource. These will be stored as the connection secret.
-		ConnectionDetails: managed.ConnectionDetails{},
-	}, nil
+	_, _, err := c.service.Teams.EditTeamBySlug(ctx, cr.Spec.ForProvider.Org, meta.GetExternalName(cr), github.NewTeam{
+		Name:        meta.GetExternalName(cr),
+		Description: cr.Spec.ForProvider.Description,
+		Privacy:     cr.Spec.ForProvider.Privacy,
+	}, false)
+
+	return managed.ExternalUpdate{}, err
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.MyType)
+	cr, ok := mg.(*v1alpha1.Team)
 	if !ok {
 		return errors.New(errNotMyType)
 	}
 
 	fmt.Printf("Deleting: %+v", cr)
 
-	return nil
+	_, err := c.service.Teams.DeleteTeamBySlug(ctx, cr.Spec.ForProvider.Org, meta.GetExternalName(cr))
+
+	return err
 }
