@@ -1,0 +1,9 @@
+apiVersion: org.github.hasheddan.io/v1alpha1
+kind: Membership
+metadata:
+  name: was-crossplane
+spec:
+  forProvider:
+    org: kubecon-na
+    team: was-crossplane 
+    user: stevendborrelli

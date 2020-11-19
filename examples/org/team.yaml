@@ -1,0 +1,9 @@
+apiVersion: org.github.hasheddan.io/v1alpha1
+kind: Team
+metadata:
+  name: was-crossplane
+spec:
+  forProvider:
+    org: kubecon-na
+    description: "some other description"
+    privacy: secret
