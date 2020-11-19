@@ -5,14 +5,14 @@ SHELL := /bin/bash
 ORG_NAME=hasheddan
 PROVIDER_NAME=kc-provider-github
 
-build: generate test
-	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o ./bin/$(PROVIDER_NAME)-controller cmd/provider/main.go
+build:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o ./bin/$(PROVIDER_NAME)-controller cmd/provider/main.go
 
-image: generate test
-	docker build . -t $(ORG_NAME)/$(PROVIDER_NAME)-controller:latest -f cluster/Dockerfile
+image:
+	docker build . -t $(ORG_NAME)/$(PROVIDER_NAME)-controller:v0.0.2 -f cluster/Dockerfile
 
 image-push:
-	docker push $(ORG_NAME)/$(PROVIDER_NAME)-controller:latest
+	docker push $(ORG_NAME)/$(PROVIDER_NAME)-controller:v0.0.2
 
 run: generate
 	kubectl apply -f package/crds/ -R
