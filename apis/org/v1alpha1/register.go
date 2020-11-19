@@ -25,7 +25,7 @@ import (
 
 // Package type metadata.
 const (
-	Group   = "sample.github.hasheddan.io"
+	Group   = "org.github.hasheddan.io"
 	Version = "v1alpha1"
 )
 
@@ -37,14 +37,23 @@ var (
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
 
-// MyType type metadata.
+// Team type metadata.
 var (
-	MyTypeKind             = reflect.TypeOf(MyType{}).Name()
-	MyTypeGroupKind        = schema.GroupKind{Group: Group, Kind: MyTypeKind}.String()
-	MyTypeKindAPIVersion   = MyTypeKind + "." + SchemeGroupVersion.String()
-	MyTypeGroupVersionKind = SchemeGroupVersion.WithKind(MyTypeKind)
+	TeamKind             = reflect.TypeOf(Team{}).Name()
+	TeamGroupKind        = schema.GroupKind{Group: Group, Kind: TeamKind}.String()
+	TeamKindAPIVersion   = TeamKind + "." + SchemeGroupVersion.String()
+	TeamGroupVersionKind = SchemeGroupVersion.WithKind(TeamKind)
+)
+
+// Membership type metadata.
+var (
+	MembershipKind             = reflect.TypeOf(Membership{}).Name()
+	MembershipGroupKind        = schema.GroupKind{Group: Group, Kind: MembershipKind}.String()
+	MembershipKindAPIVersion   = MembershipKind + "." + SchemeGroupVersion.String()
+	MembershipGroupVersionKind = SchemeGroupVersion.WithKind(MembershipKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&MyType{}, &MyTypeList{})
+	SchemeBuilder.Register(&Team{}, &TeamList{})
+	SchemeBuilder.Register(&Membership{}, &MembershipList{})
 }
